@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
 const validator = require('validator');
+const crypto = require("crypto");
 
 const signUp = async (req,res) => {
     try{
@@ -18,7 +19,7 @@ const signUp = async (req,res) => {
 
         const userExists = await pool.query(emailCheckQuery);
 
-        if(userExists.rows[0].length !== 0){
+        if(userExists.rows.length > 0){
           console.log(`Email already registered.`);
           return res.status(400).json({message: `Email already registered.`});
         }
@@ -58,7 +59,17 @@ const signUp = async (req,res) => {
         }
         console.log(`User Registered.`)
 
-        await sendEmail(userRecord.id,userRecord.email,userRecord.first_name);
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        // console.log("User Record: user's id",userRecord.id)
+        await pool.query(
+          `INSERT INTO email_verification_tokens (user_id,token,expires_at) VALUES
+          ($1,$2,$3)`,[userRecord.id,verificationToken,expiresAt]
+      );
+
+
+        await sendEmail(verificationToken,userRecord.email,userRecord.first_name);
 
         return res.status(201).json({message: `User registered successfully.
             Email sent at ${email} to verify your email.`})
@@ -70,7 +81,7 @@ const signUp = async (req,res) => {
     }
 }
 
-const sendEmail = async (id,recipientEmail,recipientName) => {
+const sendEmail = async (verificationToken,recipientEmail,recipientName) => {
      const oAuth2Client = new google.auth.OAuth2(
         process.env.CLIENT_ID,
         process.env.CLIENT_SECRET,
@@ -82,13 +93,13 @@ const sendEmail = async (id,recipientEmail,recipientName) => {
      try {
     const accessToken = await oAuth2Client.getAccessToken();
 
-    const verifyEmailRedirectURI = `http://localhost:5000/auth/verify-email/${id}`
+    const verifyEmailRedirectURI = `http://localhost:5000/auth/verify-email?token=${verificationToken}`
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         type: 'OAuth2',
-        user: 'mruzairaslam1@gmail.com',
+        user: process.env.SENDER_EMAIL,
         clientId: process.env.CLIENT_ID,
         clientSecret: process.env.CLIENT_SECRET,
         refreshToken: process.env.OAUTH_CLIENT_REFRESH_TOKEN,
@@ -115,20 +126,55 @@ const sendEmail = async (id,recipientEmail,recipientName) => {
 
 const verifyEmail = async (req,res) => {
   try{
-      const Id = req.params.Id;
+      const token = req.query.token;
 
-      const query = {
-        text:  `UPDATE users SET email_verified = TRUE WHERE id = $1 RETURNING *`,
-        values: [Id]
-      };
-
-      const verifyEmail = await pool.query(query);
-
-      if(verifyEmail.rows.length === 0){
-        return res.status(400).json({message: `User doesn't exist with Id: ${Id}`});
+      if(!token){
+        return res.status(400).json({message: `Token is required.`})
       }
-      console.log("Email Verified.")
-      return res.status(400).json({message: `Email Verified.`});
+
+      const tokenQuery = await pool.query(
+        `SELECT vt.*,u.email,u.first_name
+        FROM email_verification_tokens vt
+        JOIN users u ON vt.user_id = u.id 
+        WHERE vt.token = $1
+        AND vt.used_at IS NULL
+        AND vt.expires_at > NOW()`,
+        [token]
+      )
+
+      if(tokenQuery.rows.length === 0){
+        return res.status(400).json({
+          message: `Invalid or expired token`
+        });
+      }
+
+      const verification = tokenQuery.rows[0];
+
+      const client = await pool.connect();
+
+      try{
+        await client.query(`BEGIN;`);
+
+        await client.query(`
+          UPDATE users SET email_verified = TRUE , updated_at = NOW() WHERE id = $1`,
+        [verification.user_id]);
+
+        await client.query(`
+          UPDATE email_verification_tokens SET used_at = NOW() WHERE token = $1`,
+        [token]);
+
+        await client.query(`COMMIT`);
+
+        console.log("Email Verified.")
+        return res.status(200).json({message: `Email Verified. You can now log in.`});
+      }
+      catch(error){
+        await client.query('ROLLBACK');
+        throw error;
+      }
+      finally{
+        await client.release()
+      }  
     }
     catch(error){
       return res.status(500).json({message: `Email verification Failed.`, error: error.message});
@@ -195,4 +241,50 @@ const generateTokens = (user) =>{
   }
 }
 
-module.exports = {signUp,signIn,verifyEmail}
+const resendVerificationMail = async (req,res) => {
+  try{
+    const {email} = req.body;
+
+    const verified = await pool.query(`
+      SELECT id , first_name , email_verified FROM users WHERE email = $1`,
+    [email]);
+
+    if(verified.rows.length === 0){
+      console.log(`Email is not registered.`);
+      return res.status(400).json({message: `Email is not registered.`})
+    }
+
+    if(verified.rows[0].email_verified === "TRUE"){
+      console.log(`Email is already verified.`);
+      return res.status(404).json({message: `Email is already verified.`});
+    }
+
+    const result = await pool.query(`
+      SELECT token FROM email_verification_tokens 
+      WHERE created_at > NOW() - INTERVAL '5 minutes'
+    `);
+
+    if(result.rows.length > 0){
+      console.log(`Please wait 5 minutes before requesting email verification`);
+      return res.status(400).json({message: `Please wait 5 minutes before requesting email verification`});
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await pool.query(`INSERT INTO email_verification_tokens (user_id,token,expires_at) VALUES ($1,$2,$3)`,
+      [verified.rows[0].id,token,expiresAt]
+    );
+
+    await sendEmail(token,email,verified.rows[0].first_name);
+
+    console.log(`Verification email sent to user.`);
+    return res.status(200).json({message: `Verification email sent to user.`});
+  }
+  catch(error){
+    console.log(`resend verification email error: ${error}`)
+    return res.status(500).json(500).json({message:`resend verification email error.` ,error:error})
+  } 
+}
+
+module.exports = {signUp,signIn,verifyEmail,resendVerificationMail}
