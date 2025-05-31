@@ -71,8 +71,7 @@ const signUp = async (req,res) => {
 
         await sendEmail(verificationToken,userRecord.email,userRecord.first_name);
 
-        return res.status(201).json({message: `User registered successfully.
-            Email sent at ${email} to verify your email.`})
+        return res.status(201).json({message: `User registered successfully.\nEmail sent at ${email} to verify your email.`})
 
     }
     catch(error){
@@ -215,7 +214,7 @@ const verifyEmail = async (req,res) => {
         return res.status(500).json({message: `Error generating token`});
       }
       
-      return res.status(200).json({message: `User logged in Successfully`, ...tokens});
+      return res.status(200).json({message: `User logged in Successfully`, ...tokens,userId: user.id});
   }
   catch(error){
       console.log(`User sign in Failed.`)
