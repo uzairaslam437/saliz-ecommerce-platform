@@ -8,15 +8,7 @@ const verifyToken = (req,res,next) => {
 
         const decoded = jwt.verify(token,process.env.JWT_ACCESS_SECRET);
 
-  
-
-        if(decoded.role !== "customer" && decoded.role !== "vendor" && decoded.role !== "admin"){
-            console.log(`Invalid token`);
-            return res.status(400).json({message: `Invalid token`});
-        }
-
         req.user = decoded;
-        console.log(`Token Verified`)
         next()
     }
     catch(error){

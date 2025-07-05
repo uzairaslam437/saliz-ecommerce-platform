@@ -1,4 +1,4 @@
-const {pool} = require("../config/db");
+const {pool} = require("../model/db");
 
 const cleanupExpiredAndUsedTokens = async () => {
     try{

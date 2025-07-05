@@ -1,4 +1,4 @@
-const {pool} = require("../config/db");
+const {pool} = require("../model/db");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -10,7 +10,7 @@ const crypto = require("crypto");
 const signUp = async (req,res) => {
     try{
         console.log(req.body);
-        const {email,firstName ,lastName ,phone,dob,gender,password} = req.body;
+        const {email,firstName ,lastName ,phone,password,role} = req.body;
 
         const emailCheckQuery = {
           text: `SELECT email FROM users WHERE email = $1`,
@@ -28,26 +28,13 @@ const signUp = async (req,res) => {
             return res.status(400).json({message: `Email format is incorrect`});
         }
 
-        const today = new Date();
-
-        const birthDateObj = new Date(dob);
-
-        let age = today.getFullYear() - birthDateObj.getFullYear();
-        const monthDiff = today.getMonth() - birthDateObj.getMonth();
-
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
-            age--;
-        }
-
-        if(age < 6){
-            return res.status(400).json({message: `User must be older than 6 years`});
-        }
+        const username = email.split("@")[0];
 
         const hashedPassword = await bcrypt.hash(password,10);
 
         const query = {
-            text: `INSERT INTO users (email, first_name, last_name, phone, date_of_birth, gender, hash_password) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            values: [email, firstName, lastName, phone, dob, gender, hashedPassword]
+            text: `INSERT INTO users (email, first_name, last_name, phone, hash_password,username,role) VALUES ($1, $2, $3, $4, $5,$6,$7) RETURNING *`,
+            values: [email, firstName, lastName, phone, hashedPassword,username,role]
         };
 
         const addUser = await pool.query(query);
@@ -71,7 +58,7 @@ const signUp = async (req,res) => {
 
         await sendEmail(verificationToken,userRecord.email,userRecord.first_name);
 
-        return res.status(201).json({message: `User registered successfully.\nEmail sent at ${email} to verify your email.`})
+        return res.status(201).json({message: `User registered successfully.\nEmail sent at ${email} to verify email.`})
 
     }
     catch(error){
@@ -184,7 +171,6 @@ const verifyEmail = async (req,res) => {
     try{
       const {email,password} = req.body;
 
-      console.log(email)
       const query = {
         text: `SELECT * FROM users WHERE email = $1`,
         values: [email]
@@ -193,8 +179,8 @@ const verifyEmail = async (req,res) => {
       const queryRes = await pool.query(query);
 
       if(queryRes.rows.length === 0){
-        console.log(`Invalid Email Address`)
-        return res.status(400).json({message: `Invalid Email Address`})
+        console.log(`Email not registered`)
+        return res.status(400).json({message: `Email not registered`})
       }
 
       const user = queryRes.rows[0];
@@ -213,8 +199,13 @@ const verifyEmail = async (req,res) => {
         console.log(`Error generating tokens`);
         return res.status(500).json({message: `Error generating token`});
       }
+
+      if(user.role === "vendor"){
+        return res.status(200).json({message: `User logged in Successfully`, ...tokens,vendorId: user.id});
+
+      }
       
-      return res.status(200).json({message: `User logged in Successfully`, ...tokens,userId: user.id});
+      return res.status(200).json({message: `User logged in Successfully`, ...tokens});
   }
   catch(error){
       console.log(`User sign in Failed.`)

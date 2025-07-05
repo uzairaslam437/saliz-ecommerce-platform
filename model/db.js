@@ -19,6 +19,7 @@ const initDb = async () => {
         `CREATE TABLE IF NOT EXISTS users(
             id SERIAL PRIMARY KEY,
             email VARCHAR(255) NOT NULL UNIQUE,
+            username VARCHAR(255) UNIQUE,
             hash_password VARCHAR(255),
             first_name VARCHAR(50) NOT NULL,
             last_name VARCHAR(50) NOT NULL,
@@ -26,7 +27,7 @@ const initDb = async () => {
             date_of_birth DATE,
             gender VARCHAR(10),
             is_active BOOLEAN DEFAULT TRUE,
-            role VARCHAR(20) DEFAULT 'customer',
+            role VARCHAR(20) DEFAULT 'customer',             
             email_verified BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
@@ -69,7 +70,7 @@ const initDb = async () => {
     await client.query(
         `CREATE TABLE IF NOT EXISTS vendor_bank_details (
             id SERIAL PRIMARY KEY,
-            vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
             bank_name VARCHAR(255) NOT NULL,
             account_holder_name VARCHAR(255) NOT NULL,
             account_number VARCHAR(50) NOT NULL,
@@ -95,7 +96,6 @@ const initDb = async () => {
         CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
             vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
-            category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
             name VARCHAR(255) NOT NULL,
             description TEXT,
             short_description VARCHAR(500),
@@ -121,6 +121,16 @@ const initDb = async () => {
             UNIQUE(vendor_id, sku)
         );
         `);
+
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS product_images(
+            id SERIAL PRIMARY KEY,
+            product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+            image_url TEXT NOT NULL,
+            alt_text TEXT,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
     await client.query(`
         CREATE TABLE IF NOT EXISTS email_verification_tokens (

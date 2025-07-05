@@ -1,10 +1,11 @@
 const express = require("express");
-const router = express.Router();
-const { addVenderDetails, addVendorBankDetails } = require("../controllers/vendor");
+const router  = express.Router();
+const {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct} = require("../controllers/product");
 
 const multer = require('multer');
 const { S3Client } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
+const { verify } = require("jsonwebtoken");
 require('dotenv').config();
 
 // console.log(process.env.S3_BUCKET_NAME);
@@ -23,7 +24,7 @@ const upload = multer({
   storage: multerS3({
     s3: s3Client,
     bucket: process.env.S3_BUCKET_NAME,
-    acl: 'public-read', // or 'private' if you want it locked
+    // acl: 'public-read', // or 'private' if you want it locked
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
     },
@@ -33,14 +34,18 @@ const upload = multer({
   }),
 });
 
-const vendorAuthorization = (req,res,next) =>{
-  if (req.user.role !== "vendor"){
-    console.log("User is not a vendor. Not Authorized")
-    return res.status(403).json({message: "First register yourself as Saliz Vendor"})
+const verifyAuth = (req,res,next) => {
+  if(req.user.role !== "vendor"){
+    return res.status(403).json({message: "Not Authorization to add,get,update and delete products."});
   }
+  next()
 }
 
-router.post("/details",vendorAuthorization, upload.single('logo'), addVenderDetails);
-router.post("/bank-details",vendorAuthorization, addVendorBankDetails);
+
+router.post("/add",verifyAuth,upload.array("images",3),addProduct);
+router.get("/:id",verifyAuth,getProduct);
+router.get("/store/:vendorId",verifyAuth,getStoreProducts);
+router.patch("/:id",verifyAuth,updateProduct);
+router.delete("/:id",verifyAuth,deleteProduct);
 
 module.exports = router;
