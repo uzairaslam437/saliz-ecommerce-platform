@@ -146,6 +146,18 @@ const initDb = async () => {
         );`);
 
     await client.query(`
+        CREATE TABLE IF NOT EXISTS cart (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            product_id INTEGER REFERENCES products(id),
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, product_id)
+        );`);
+
+    await client.query(`
             CREATE INDEX IF NOT EXISTS idx_vendor_store_name ON vendors(store_name);
         `);
 

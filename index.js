@@ -5,8 +5,9 @@ const {initDb} = require("./model/db")
 const authRouter = require("./routes/auth");
 const vendorRouter = require("./routes/vendor");
 const productRouter = require("./routes/product");
+const cartRouter    = require("./routes/cart");
 const { verifyToken } = require("./middlewares/auth")
-const {cleanupExpiredAndUsedTokens} = require("./util/index")
+const {cleanupExpiredAndUsedTokens} = require("./util/index");
 const PORT = process.env.PORT || 5000;
 require("dotenv").config();
 
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use("/auth",authRouter);
 app.use("/vendor",verifyToken,vendorRouter);
 app.use("/product",verifyToken,productRouter);
+app.use("/cart",verifyToken,cartRouter);
 
 setInterval(cleanupExpiredAndUsedTokens,60 * 60 * 1000);
 
