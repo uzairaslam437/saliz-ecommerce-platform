@@ -158,6 +158,27 @@ const initDb = async () => {
         );`);
 
     await client.query(`
+        CREATE TABLE IF NOT EXISTS orders (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            shipping_address VARCHAR(255),
+            payment_method VARCHAR(255), -- e.g., 'cash_on_delivery', 'paypal'
+            payment_status VARCHAR(255), -- e.g., 'pending', 'paid'
+            order_status VARCHAR(255),   -- e.g., 'pending', 'shipped'
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`);
+    
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS order_items(
+            id SERIAL PRIMARY KEY,
+            order_id INTEGER REFERENCES orders(id),
+            product_id INTEGER REFERENCES products(id),
+            quantity INTEGER,
+            price DECIMAL(10,2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`)
+
+    await client.query(`
             CREATE INDEX IF NOT EXISTS idx_vendor_store_name ON vendors(store_name);
         `);
 

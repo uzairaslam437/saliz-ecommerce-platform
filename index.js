@@ -6,6 +6,7 @@ const authRouter = require("./routes/auth");
 const vendorRouter = require("./routes/vendor");
 const productRouter = require("./routes/product");
 const cartRouter    = require("./routes/cart");
+const orderRouter   = require("./routes/order");
 const { verifyToken } = require("./middlewares/auth")
 const {cleanupExpiredAndUsedTokens} = require("./util/index");
 const PORT = process.env.PORT || 5000;
@@ -24,6 +25,7 @@ app.use("/auth",authRouter);
 app.use("/vendor",verifyToken,vendorRouter);
 app.use("/product",verifyToken,productRouter);
 app.use("/cart",verifyToken,cartRouter);
+app.use("/order",verifyToken,orderRouter);
 
 setInterval(cleanupExpiredAndUsedTokens,60 * 60 * 1000);
 
