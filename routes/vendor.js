@@ -7,7 +7,6 @@ const { S3Client } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
 require('dotenv').config();
 
-// console.log(process.env.S3_BUCKET_NAME);
 
 // Create S3 client with v3 configuration
 const s3Client = new S3Client({
