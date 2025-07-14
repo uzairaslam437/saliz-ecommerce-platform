@@ -73,3 +73,16 @@ saliz-ecommerce-app/
 5. **Run Application**
 
    nodemon index.js
+
+
+👨‍💻 Author
+Uzair Aslam
+Backend Developer
+---
+
+Let me know if you’d like to:
+- Generate API docs from Swagger/OpenAPI
+- Auto-deploy this backend using Render or Railway
+- Add environment-specific config and `.env.example` file
+
+Happy to help with that too!
