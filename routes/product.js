@@ -1,6 +1,6 @@
 const express = require("express");
 const router  = express.Router();
-const {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct} = require("../controllers/product");
+const {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct,updateStatus} = require("../controllers/product");
 
 const multer = require('multer');
 const { S3Client } = require('@aws-sdk/client-s3');
@@ -41,11 +41,21 @@ const verifyAuth = (req,res,next) => {
   next()
 }
 
+const verifyAdmin = (req,res,next) => {
+  if(req.user.role !== "admin"){
+    return res.status(403).json({message: "Not Authorization to add,get,update and delete products."});
+  }
+  next()
+}
 
 router.post("/add",verifyAuth,upload.array("images",3),addProduct);
 router.get("/:id",verifyAuth,getProduct);
 router.get("/store/:vendorId",verifyAuth,getStoreProducts);
 router.patch("/:id",verifyAuth,updateProduct);
 router.delete("/:id",verifyAuth,deleteProduct);
+
+
+router.put("/admin/:id/status",verifyAuth,verifyAdmin,updateStatus);
+router.delete("/admin/:id",verifyAuth,verifyAdmin,deleteProduct);
 
 module.exports = router;

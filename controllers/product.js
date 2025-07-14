@@ -204,5 +204,93 @@ const deleteProduct = async (req,res) => {
     }
 }
 
+const updateStatus = async (req,res) => {
+    try{
+        const productId = req.params.id;
+        const {status} = req.body;
 
-module.exports = {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct};
+        const query = {
+            text: `UPDATE products SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+            values: [status, productId]
+        }
+
+        const update = await pool.query(query);
+
+        if(update.rows.length === 0){
+            return res.status(404).json({message: "Product not found"});
+        }
+
+        return res.status(200).json({message: "Product status updated successfully", product: update.rows[0]});
+    }
+    catch(error){
+        console.log(error);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+const searchProducts = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+
+    const sql = `
+      SELECT 
+        p.id, p.name, p.price, p.short_description, p.tags, 
+        c.name AS category_name,
+        ts_rank_cd(
+          setweight(to_tsvector(p.name), 'A') ||
+          setweight(to_tsvector(coalesce(p.short_description, '')), 'B') ||
+          setweight(to_tsvector(coalesce(p.tags, '')), 'C') ||
+          setweight(to_tsvector(coalesce(c.name, '')), 'D'),
+          plainto_tsquery($1)
+        ) AS rank
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE
+        setweight(to_tsvector(p.name), 'A') ||
+        setweight(to_tsvector(coalesce(p.short_description, '')), 'B') ||
+        setweight(to_tsvector(coalesce(p.tags, '')), 'C') ||
+        setweight(to_tsvector(coalesce(c.name, '')), 'D')
+        @@ plainto_tsquery($1)
+      ORDER BY rank DESC
+      LIMIT 20;
+    `;
+
+    const result = await pool.query(sql, [query]);
+    return res.status(200).json({
+      message: "Search results retrieved",
+      results: result.rows
+    });
+  } catch (error) {
+    console.error("Search Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const filterByPrice = (req,res) => {
+    const {minPrice, maxPrice} = req.query;
+
+    if(!minPrice || !maxPrice){
+        return res.status(400).json({message: "Both minPrice and maxPrice are required."});
+    }
+
+    const query = {
+        text: `SELECT * FROM products WHERE price BETWEEN $1 AND $2`,
+        values: [minPrice, maxPrice]
+    };
+
+    pool.query(query)
+        .then(result => {
+            return res.status(200).json({message: "Products filtered by price", products: result.rows});
+        })
+        .catch(error => {
+            console.error("Filter Error:", error);
+            return res.status(500).json({message: "Internal server error"});
+        });
+}
+
+module.exports = {addProduct,getProduct,getStoreProducts,updateProduct,
+    deleteProduct,updateStatus,searchProducts,filterByPrice};
