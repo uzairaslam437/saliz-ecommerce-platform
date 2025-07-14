@@ -36,3 +36,40 @@ A scalable, secure, and modular **Node.js + Express.js** backend application for
 
 ## 📁 Project Structure
 
+saliz-ecommerce-app/
+│
+├── backend/
+│ ├── controllers/
+│ ├── middlewares/
+│ ├── model/
+│ ├── routes/
+│ ├── util/
+│ ├── .env
+│ ├── index.js
+│ └── README.md
+
+
+---
+
+## 📦 Installation
+
+1. **Clone the repository**
+   git clone https://github.com/your-username/saliz-ecommerce-app.git
+   cd saliz-ecommerce-app/backend
+
+2. **Install Dependencies**
+
+    npm install
+
+3. **Configure environment variables**
+
+    PORT=5000
+    DB_USER=your_pg_user
+    DB_PASSWORD=your_pg_password
+    DB_NAME=salizdb
+    DB_HOST=localhost
+    JWT_SECRET=your_jwt_secret
+   
+5. **Run Application**
+
+   nodemon index.js
