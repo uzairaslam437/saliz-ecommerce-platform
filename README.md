@@ -75,11 +75,10 @@ saliz-ecommerce-app/
    nodemon index.js
 
 
-👨‍💻 Author
-
+## 👨‍💻 Author
+---
    uzair aslam
    backend developer
----
 
 Let me know if you’d like to:
 - Generate API docs from Swagger/OpenAPI
