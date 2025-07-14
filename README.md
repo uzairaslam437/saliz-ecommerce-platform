@@ -76,8 +76,9 @@ saliz-ecommerce-app/
 
 
 👨‍💻 Author
-Uzair Aslam
-Backend Developer
+
+   uzair aslam
+   backend developer
 ---
 
 Let me know if you’d like to:
