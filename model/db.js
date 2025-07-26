@@ -123,6 +123,16 @@ const initDb = async () => {
         `);
 
     await client.query(`
+            CREATE TABLE IF NOT EXISTS ratings(
+            id SERIAL PRIMARY KEY,
+            product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            rating DECIMAL(2,1),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`)
+
+    await client.query(`
         CREATE TABLE IF NOT EXISTS product_images(
             id SERIAL PRIMARY KEY,
             product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
@@ -177,6 +187,14 @@ const initDb = async () => {
             price DECIMAL(10,2),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`)
+
+    await client.query(`
+            CREATE TABLE IF NOT EXISTS refresh_tokens(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id), 
+            token TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );`);
 
     await client.query(`
             CREATE INDEX IF NOT EXISTS idx_vendor_store_name ON vendors(store_name);

@@ -195,26 +195,38 @@ const verifyEmail = async (req,res) => {
 
       const tokens = generateTokens(user)
 
-      if(!tokens){
-        console.log(`Error generating tokens`);
-        return res.status(500).json({message: `Error generating token`});
-      }
+      const {accessToken,refreshToken} = tokens;
 
-      if(user.role === "vendor"){
-        return res.status(200).json({message: `User logged in Successfully`, ...tokens,vendorId: user.id});
+      // if(!tokens){
+      //   console.log(`Error generating tokens`);
+      //   return res.status(500).json({message: `Error generating token`});
+      // }
 
-      }
+      // if(user.role === "vendor"){
+      //   return res.status(200).json({message: `User logged in Successfully`, ...tokens,vendorId: user.id});
+
+      // }
+
+    
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: true, // Set to true in production (HTTPS)
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+
       
-      return res.status(200).json({message: `User logged in Successfully`, ...tokens});
+      return res.status(200).json({message: `User logged in Successfully`, token: accessToken});
   }
   catch(error){
-      console.log(`User sign in Failed.`)
+      console.log(`User sign in Failed. ${error}`)
       return res.status(500).json({message: `User sign in Failed.`, error: error.message});
   }
   
 }
 
-const generateTokens = (user) =>{
+const   generateTokens = (user) =>{
   try{
     const accessToken = jwt.sign({id: user.id, role: user.role},process.env.JWT_ACCESS_SECRET,{
       expiresIn: process.env.JWT_ACCESS_EXPIRY
@@ -277,4 +289,31 @@ const resendVerificationMail = async (req,res) => {
   } 
 }
 
-module.exports = {signUp,signIn,verifyEmail,resendVerificationMail}
+const refreshAcessToken = async (req,res) => {
+  try{
+    const refreshToken = req.cookies.refresh_token;
+
+    const query = {
+      text:  `SELECT * FROM refresh_tokens WHERE token = $1 AND user_id = $2`,
+      values: [refreshToken,res.user.id]
+    }
+
+    const valid = await pool.query(query);
+
+    if(valid.rows[0].length === 0){
+      return res.status(401).json({message: `Not valid refresh token`});
+    }
+
+    const token = jwt.sign({id: req.user.id , role: req.user.role},process.env.JWT_ACCESS_SECRET,{
+      expiresIn: process.env.JWT_ACCESS_EXPIRY
+    });
+
+    return res.status(200).json({token})
+  }
+  catch(Error){
+    console.log(`Error: ${Error}`)
+    return res.status(500).json({message: `Internal Server Error`})
+  }
+}
+
+module.exports = {signUp,signIn,verifyEmail,resendVerificationMail,refreshAcessToken}

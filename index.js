@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const {initDb} = require("./model/db")
+const cors = require('cors');
+const cookieParser = require('cookie-parser')
 const authRouter = require("./routes/auth");
 const vendorRouter = require("./routes/vendor");
 const productRouter = require("./routes/product");
@@ -10,7 +12,7 @@ const orderRouter   = require("./routes/order");
 const paymentRouter = require("./routes/payment");
 const { verifyToken } = require("./middlewares/auth")
 const {cleanupExpiredAndUsedTokens} = require("./util/index");
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3002;
 require("dotenv").config();
 
 initDb();
@@ -20,6 +22,9 @@ initDb();
 // console.log('AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? 'Set' : 'Not set');
 // console.log('AWS_REGION:', process.env.AWS_REGION);
 // console.log('S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME);
+
+app.use(cors())
+app.use(cookieParser())
 
 app.use(express.json());
 app.use("/auth",authRouter);

@@ -204,5 +204,43 @@ const deleteProduct = async (req,res) => {
     }
 }
 
+const getAllProducts = async (req, res) => {
+  try {
+    const query = {
+      text: `
+        SELECT 
+          products.id,
+          products.name,
+          products.price,
+          product_images.image_url AS imageUrl
+        FROM products
+        JOIN product_images ON products.id = product_images.product_id
+        ORDER BY products.id
+      `
+    };
 
-module.exports = {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct};
+    const result = await pool.query(query);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No products found" });
+    }
+
+    const products = result.rows.map(product => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageurl, // alias used in SELECT
+      rating: product.rating
+    }));
+
+    return res.status(200).json({ products });
+
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+
+module.exports = {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct,getAllProducts};

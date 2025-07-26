@@ -1,6 +1,6 @@
 const express = require("express");
 const router  = express.Router();
-const {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct} = require("../controllers/product");
+const {addProduct,getProduct,getStoreProducts,updateProduct,deleteProduct,getAllProducts} = require("../controllers/product");
 
 const multer = require('multer');
 const { S3Client } = require('@aws-sdk/client-s3');
@@ -41,6 +41,7 @@ const verifyAuth = (req,res,next) => {
   next()
 }
 
+router.get("/all",getAllProducts);
 
 router.post("/add",verifyAuth,upload.array("images",3),addProduct);
 router.get("/:id",verifyAuth,getProduct);
