@@ -23,7 +23,11 @@ initDb();
 // console.log('AWS_REGION:', process.env.AWS_REGION);
 // console.log('S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME);
 
-app.use(cors())
+app.use(cors({
+  origin: 'http://localhost:5173', // Frontend origin
+  credentials: true, // Allow cookies to be sent
+}));
+
 app.use(cookieParser())
 
 app.use(express.json());

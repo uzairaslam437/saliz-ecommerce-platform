@@ -42,9 +42,10 @@ const verifyAuth = (req,res,next) => {
 }
 
 router.get("/all",getAllProducts);
+router.get("/:id",getProduct);  
 
 router.post("/add",verifyAuth,upload.array("images",3),addProduct);
-router.get("/:id",verifyAuth,getProduct);
+
 router.get("/store/:vendorId",verifyAuth,getStoreProducts);
 router.patch("/:id",verifyAuth,updateProduct);
 router.delete("/:id",verifyAuth,deleteProduct);

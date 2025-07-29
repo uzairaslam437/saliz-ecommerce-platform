@@ -3,7 +3,7 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const nodemailer = require('nodemailer');
-const { google } = require('googleapis');
+const { google, firebaserules_v1 } = require('googleapis');
 const validator = require('validator');
 const crypto = require("crypto");
 
@@ -207,15 +207,17 @@ const verifyEmail = async (req,res) => {
 
       // }
 
+      await pool.query(`INSERT INTO refresh_tokens (user_id,token) VALUES ($1,$2)`,
+        [user.id,refreshToken]
+      );
+
     
-      res.cookie('refreshToken', refreshToken, {
+      res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
-        secure: true, // Set to true in production (HTTPS)
-        sameSite: 'strict',
+        secure: false, // Set to true in production (HTTPS)
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-
-
       
       return res.status(200).json({message: `User logged in Successfully`, token: accessToken});
   }
@@ -289,31 +291,46 @@ const resendVerificationMail = async (req,res) => {
   } 
 }
 
-const refreshAcessToken = async (req,res) => {
-  try{
+
+const refreshAcessToken = async (req, res) => {
+  console.log(`Refresh Token requested`);
+  console.log("Cookies Received:", req.cookies);
+
+  try {
     const refreshToken = req.cookies.refresh_token;
+    console.log("Refresh Token:", refreshToken);
 
+    // 1. Verify Refresh Token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    console.log("Decoded Refresh Token:", decoded);
+
+    // 2. Check if token exists in DB (optional but good practice)
     const query = {
-      text:  `SELECT * FROM refresh_tokens WHERE token = $1 AND user_id = $2`,
-      values: [refreshToken,res.user.id]
-    }
-
+      text: `SELECT * FROM refresh_tokens WHERE token = $1`,
+      values: [refreshToken]
+    };
     const valid = await pool.query(query);
 
-    if(valid.rows[0].length === 0){
-      return res.status(401).json({message: `Not valid refresh token`});
+    if (valid.rows.length === 0) {
+      return res.status(401).json({ message: `Refresh token not found in DB` });
     }
 
-    const token = jwt.sign({id: req.user.id , role: req.user.role},process.env.JWT_ACCESS_SECRET,{
-      expiresIn: process.env.JWT_ACCESS_EXPIRY
-    });
+    // 3. Create new access token
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, role: decoded.role },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: process.env.JWT_ACCESS_EXPIRY }
+    );
 
-    return res.status(200).json({token})
+    console.log("New Access Token:", newAccessToken);
+
+    return res.status(200).json({ token: newAccessToken });
+
+  } catch (err) {
+    console.error("Refresh token error:", err);
+    return res.status(401).json({ message: "Invalid or expired refresh token" });
   }
-  catch(Error){
-    console.log(`Error: ${Error}`)
-    return res.status(500).json({message: `Internal Server Error`})
-  }
-}
+};
+
 
 module.exports = {signUp,signIn,verifyEmail,resendVerificationMail,refreshAcessToken}
