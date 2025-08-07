@@ -51,21 +51,6 @@ const initDb = async () => {
         );
     `);
 
-    
-
-    await client.query(
-        `CREATE TABLE IF NOT EXISTS vendors(
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-            store_name VARCHAR(20),
-            store_description VARCHAR(255),
-            store_logo VARCHAR(255),
-            store_banner VARCHAR(255),
-            commission_rate DECIMAL(5,2) DEFAULT 5.00,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
-        );`
-    );
 
     await client.query(
         `CREATE TABLE IF NOT EXISTS vendor_bank_details (
@@ -95,7 +80,7 @@ const initDb = async () => {
     await client.query(`
         CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
-            vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
+            vendor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
             name VARCHAR(255) NOT NULL,
             description TEXT,
             short_description VARCHAR(500),

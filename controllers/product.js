@@ -73,9 +73,9 @@ const addProduct = async (req, res) => {
 
     await Promise.all(insertImagePromises);
 
-    return res.status(201).json(`Product Added Successfully.`);
+    return res.status(201).json({ message: `Product Added Successfully.` });
   } catch (error) {
-    console.log(`Internal Server Error`);
+    console.log(error);
     return res.status(500).json({ message: `Internal Server Error` });
   }
 };
@@ -135,7 +135,7 @@ const getProduct = async (req, res) => {
             GROUP BY 
                 products.id,
                 vendors.store_name
-        `           ,
+        `,
       values: [productId],
     };
 

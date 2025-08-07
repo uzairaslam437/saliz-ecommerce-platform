@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 const {initDb} = require("./model/db")
 const cors = require('cors');
+const morgan = require('morgan');
 const cookieParser = require('cookie-parser')
 const authRouter = require("./routes/auth");
 const vendorRouter = require("./routes/vendor");
@@ -23,10 +24,14 @@ initDb();
 // console.log('AWS_REGION:', process.env.AWS_REGION);
 // console.log('S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME);
 
-app.use(cors({
-  origin: 'http://localhost:5173', // Frontend origin
-  credentials: true, // Allow cookies to be sent
-}));
+app.use(morgan('tiny'));
+
+app.use(cors());
+
+// {
+//   origin: 'http://localhost:5173', // Frontend origin
+//   credentials: true, // Allow cookies to be sent
+// }
 
 app.use(cookieParser())
 

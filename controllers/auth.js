@@ -3,7 +3,7 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const nodemailer = require('nodemailer');
-const { google, firebaserules_v1 } = require('googleapis');
+const { google} = require('googleapis');
 const validator = require('validator');
 const crypto = require("crypto");
 
@@ -46,19 +46,19 @@ const signUp = async (req,res) => {
         }
         console.log(`User Registered.`)
 
-        const verificationToken = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      //   const verificationToken = crypto.randomBytes(32).toString('hex');
+      //   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        // console.log("User Record: user's id",userRecord.id)
-        await pool.query(
-          `INSERT INTO email_verification_tokens (user_id,token,expires_at) VALUES
-          ($1,$2,$3)`,[userRecord.id,verificationToken,expiresAt]
-      );
+      //   // console.log("User Record: user's id",userRecord.id)
+      //   await pool.query(
+      //     `INSERT INTO email_verification_tokens (user_id,token,expires_at) VALUES
+      //     ($1,$2,$3)`,[userRecord.id,verificationToken,expiresAt]
+      // );
 
 
-        await sendEmail(verificationToken,userRecord.email,userRecord.first_name);
+      //   await sendEmail(verificationToken,userRecord.email,userRecord.first_name);
 
-        return res.status(201).json({message: `User registered successfully.\nEmail sent at ${email} to verify email.`})
+        return res.status(201).json({message: `User registered successfully.`})
 
     }
     catch(error){
